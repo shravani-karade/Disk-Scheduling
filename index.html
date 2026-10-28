@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disk Scheduling Simulator: Custom Priority Tuning</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- PAGE 1: HOME LANDING PAGE -->
+  <div id="homePage" class="page active">
+    <div class="landing-hero">
+      <div class="hero-badge"><i class="fa-solid fa-sliders"></i> User Preference Enabled</div>
+      <h1>Adaptive Disk Scheduling <span>Visualizer</span></h1>
+      <p>Configure custom priorities (Distance, Age, Deadline, Frequency) and compare with SCAN & C-SCAN!</p>
+      
+      <div class="mode-cards">
+        <div class="mode-card" onclick="selectMode('scan')">
+          <div class="card-icon blue"><i class="fa-solid fa-elevator"></i></div>
+          <h3>SCAN Algorithm</h3>
+          <p class="card-desc">Elevator Method. Services up to boundary and reverses.</p>
+          <div class="btn-select">Explore SCAN <i class="fa-solid fa-arrow-right"></i></div>
+        </div>
+
+        <div class="mode-card" onclick="selectMode('cscan')">
+          <div class="card-icon purple"><i class="fa-solid fa-arrows-spin"></i></div>
+          <h3>C-SCAN Algorithm</h3>
+          <p class="card-desc">Circular Loop. One direction servicing with fast jump to 0.</p>
+          <div class="btn-select">Explore C-SCAN <i class="fa-solid fa-arrow-right"></i></div>
+        </div>
+
+        <div class="mode-card" onclick="selectMode('adaptive')">
+          <div class="card-icon green"><i class="fa-solid fa-sliders"></i></div>
+          <h3>Custom Adaptive</h3>
+          <p class="card-desc">User-driven priority weighting (Distance, Age, Deadline, Frequency).</p>
+          <div class="btn-select">Tune Priorities <i class="fa-solid fa-arrow-right"></i></div>
+        </div>
+
+        <div class="mode-card featured" onclick="selectMode('compare')">
+          <div class="featured-badge">Research Mode</div>
+          <div class="card-icon amber"><i class="fa-solid fa-trophy"></i></div>
+          <h3>3-Way Algorithm Race</h3>
+          <p class="card-desc">Race SCAN vs C-SCAN vs Custom Weighted Adaptive live!</p>
+          <div class="btn-select highlight">Run 3-Way Race <i class="fa-solid fa-bolt"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 2: SIMULATOR WORKSPACE -->
+  <div id="simPage" class="page">
+    
+    <!-- NAVBAR -->
+    <nav class="navbar">
+      <button class="btn-back" onclick="goHome()"><i class="fa-solid fa-arrow-left"></i> Home</button>
+      <div class="nav-title" id="navTitle">Multiparameter Adaptive Disk Race</div>
+      
+      <div class="view-toggle">
+        <button class="view-btn active" id="btnPlatterView" onclick="switchVisualView('platter')">
+          <i class="fa-solid fa-compact-disc"></i> HDD Platter
+        </button>
+        <button class="view-btn" id="btnRoadView" onclick="switchVisualView('road')">
+          <i class="fa-solid fa-road"></i> Race Track
+        </button>
+      </div>
+
+      <div class="preset-pills">
+        <button class="pill" onclick="loadPreset([176, 79, 34, 60, 92, 11, 41, 114], 50)">Standard Test</button>
+        <button class="pill" onclick="loadPreset([15, 35, 45, 120, 150, 185], 10)">Spread Out</button>
+        <button class="pill" onclick="loadPreset([5, 195, 15, 180, 25], 100)">Edge Jump</button>
+      </div>
+    </nav>
+
+    <div class="sim-content">
+      
+      <!-- CONTROLS PANEL -->
+      <div class="control-panel">
+        <div class="inputs-grid">
+          <div class="field wide">
+            <label><i class="fa-solid fa-list"></i> Request Queue (0 to 199)</label>
+            <input type="text" id="requests" value="176, 79, 34, 60, 92, 11, 41, 114">
+          </div>
+          <div class="field">
+            <label><i class="fa-solid fa-location-crosshairs"></i> Initial Head</label>
+            <input type="number" id="startHead" value="50" min="0" max="199">
+          </div>
+          <div class="field">
+            <label><i class="fa-solid fa-compass"></i> Direction</label>
+            <select id="direction">
+              <option value="right">Right (➔ 199)</option>
+              <option value="left">Left (0 )</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-play" onclick="startSimulation()"><i class="fa-solid fa-play"></i> Start Race</button>
+      </div>
+
+      <!-- USER PRIORITY WEIGHTS PANEL -->
+      <div class="weights-panel" id="weightsPanel">
+        <div class="weights-title"><i class="fa-solid fa-sliders"></i> User Priority Tuning (Adjust Weights for Adaptive Algorithm):</div>
+        <div class="sliders-grid">
+          <div class="slider-group">
+            <label>Distance Penalty: <span id="valDist">40</span>%</label>
+            <input type="range" id="wDist" min="0" max="100" value="40" oninput="updateWeightLabels()">
+          </div>
+          <div class="slider-group">
+            <label>Request Age: <span id="valAge">25</span>%</label>
+            <input type="range" id="wAge" min="0" max="100" value="25" oninput="updateWeightLabels()">
+          </div>
+          <div class="slider-group">
+            <label>Deadline Urgency: <span id="valDeadline">20</span>%</label>
+            <input type="range" id="wDeadline" min="0" max="100" value="20" oninput="updateWeightLabels()">
+          </div>
+          <div class="slider-group">
+            <label>Access Frequency: <span id="valFreq">15</span>%</label>
+            <input type="range" id="wFreq" min="0" max="100" value="15" oninput="updateWeightLabels()">
+          </div>
+        </div>
+      </div>
+
+      <!-- VISUALIZERS GRID -->
+      <div class="visualizers-grid" id="visualizersGrid">
+        
+        <!-- SCAN CARD -->
+        <div class="runner-card scan-card" id="scanCard">
+          <div class="card-header">
+            <div><span class="badge scan-badge">Elevator</span><h2>SCAN</h2></div>
+            <div class="stat-box"><span id="scanDist" class="stat-num">0</span><small>Tracks Moved</small></div>
+          </div>
+          <div class="platter-view view-box" id="scanPlatterView">
+            <div class="platter">
+              <div class="platter-spindle"></div>
+              <div class="ring ring-3"></div><div class="ring ring-2"></div><div class="ring ring-1"></div>
+              <div id="scanPlatterPins"></div>
+              <div class="head-arm" id="scanArm"><div class="arm-needle"></div></div>
+            </div>
+          </div>
+          <div class="road-view view-box hidden" id="scanRoadView">
+            <div class="road-container">
+              <div class="road-line"></div>
+              <div id="scanRoadPins"></div>
+              <div class="car-wrapper" id="scanCar"><div class="car-icon">🏎️</div><div class="car-badge" id="scanCarPos">50</div></div>
+            </div>
+          </div>
+          <div class="status-msg" id="scanStatus">Ready...</div>
+        </div>
+
+        <!-- C-SCAN CARD -->
+        <div class="runner-card cscan-card" id="cscanCard">
+          <div class="card-header">
+            <div><span class="badge cscan-badge">Circular Loop</span><h2>C-SCAN</h2></div>
+            <div class="stat-box"><span id="cscanDist" class="stat-num">0</span><small>Tracks Moved</small></div>
+          </div>
+          <div class="platter-view view-box" id="cscanPlatterView">
+            <div class="platter">
+              <div class="platter-spindle"></div>
+              <div class="ring ring-3"></div><div class="ring ring-2"></div><div class="ring ring-1"></div>
+              <div id="cscanPlatterPins"></div>
+              <div class="head-arm" id="cscanArm"><div class="arm-needle"></div></div>
+            </div>
+          </div>
+          <div class="road-view view-box hidden" id="cscanRoadView">
+            <div class="road-container">
+              <div class="road-line"></div>
+              <div id="cscanRoadPins"></div>
+              <div class="car-wrapper" id="cscanCar"><div class="car-icon">🏎️</div><div class="car-badge" id="cscanCarPos">50</div></div>
+            </div>
+          </div>
+          <div class="status-msg" id="cscanStatus">Ready...</div>
+        </div>
+
+        <!-- ADAPTIVE MULTIPARAMETER CARD -->
+        <div class="runner-card adapt-card" id="adaptCard">
+          <div class="card-header">
+            <div><span class="badge adapt-badge">User Weighted</span><h2>Custom Adaptive</h2></div>
+            <div class="stat-box"><span id="adaptDist" class="stat-num">0</span><small>Tracks Moved</small></div>
+          </div>
+          <div class="platter-view view-box" id="adaptPlatterView">
+            <div class="platter">
+              <div class="platter-spindle"></div>
+              <div class="ring ring-3"></div><div class="ring ring-2"></div><div class="ring ring-1"></div>
+              <div id="adaptPlatterPins"></div>
+              <div class="head-arm" id="adaptArm"><div class="arm-needle"></div></div>
+            </div>
+          </div>
+          <div class="road-view view-box hidden" id="adaptRoadView">
+            <div class="road-container">
+              <div class="road-line"></div>
+              <div id="adaptRoadPins"></div>
+              <div class="car-wrapper" id="adaptCar"><div class="car-icon">🚀</div><div class="car-badge" id="adaptCarPos">50</div></div>
+            </div>
+          </div>
+          <div class="status-msg" id="adaptStatus">Ready...</div>
+        </div>
+
+      </div>
+
+      <!-- WINNER BANNER -->
+      <div class="winner-banner" id="winnerBanner">
+        <i class="fa-solid fa-trophy banner-icon"></i>
+        <div id="winnerText">Press <strong>Start Race</strong> to run the adaptive priority race!</div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
